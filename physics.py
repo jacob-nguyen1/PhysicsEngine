@@ -57,25 +57,46 @@ def main():
                 ball.x = ball.radius
                 ball.v_x *= -ball.elasticity
             if ball.x + ball.radius >= 640:
-                ball.x = ball.radius
+                ball.x = 640 - ball.radius
                 ball.v_x *= -ball.elasticity
 
-            # Ball to Ball collision
+            # Ball to ball collision (chatgpt)
             for other_ball in [ball_ for ball_ in balls if ball_ != ball]:
-                distance = math.sqrt((other_ball.x-ball.x)**2 + (other_ball.y-ball.y)**2)
+                # Calculate distance between ball centers
+                distance = math.sqrt((other_ball.x - ball.x)**2 + (other_ball.y - ball.y)**2)
+                
+                # Check if distance is less than the sum of their radii => collision
                 if distance < ball.radius + other_ball.radius:
-                    collision_angle = math.tan((other_ball.y-ball.y)/(other_ball.x-ball.x)) * 57.2957795
-
-                    # Move apart
-                    overlap = (ball.radius + other_ball.radius - distance) / 2
+                    
+                    # Calculate collision angle
+                    collision_angle = math.atan2(other_ball.y - ball.y, other_ball.x - ball.x)
+                    
+                    # Calculate overlap
+                    overlap = 0.5 * (ball.radius + other_ball.radius - distance)
+                    
+                    # Displace the balls by the overlap to avoid sticking
                     ball.x -= overlap * math.cos(collision_angle)
                     ball.y -= overlap * math.sin(collision_angle)
                     other_ball.x += overlap * math.cos(collision_angle)
                     other_ball.y += overlap * math.sin(collision_angle)
-
-                    # ???????????????????????????????????
                     
-
+                    # Calculate new velocities in normal direction (along the collision angle)
+                    ball_vx_normal = ball.v_x * math.cos(collision_angle) + ball.v_y * math.sin(collision_angle)
+                    other_ball_vx_normal = other_ball.v_x * math.cos(collision_angle) + other_ball.v_y * math.sin(collision_angle)
+                    
+                    # Using one-dimensional elastic collision equations to get new normal velocities
+                    ball_vx_normal_new = ((ball.m - other_ball.m) * ball_vx_normal + 2 * other_ball.m * other_ball_vx_normal) / (ball.m + other_ball.m)
+                    other_ball_vx_normal_new = ((other_ball.m - ball.m) * other_ball_vx_normal + 2 * ball.m * ball_vx_normal) / (ball.m + other_ball.m)
+                    
+                    # Convert the new normal velocities back to x, y velocities
+                    ball_vx_normal_diff = ball_vx_normal_new - ball_vx_normal
+                    other_ball_vx_normal_diff = other_ball_vx_normal_new - other_ball_vx_normal
+                    
+                    ball.v_x += ball_vx_normal_diff * math.cos(collision_angle)
+                    ball.v_y += ball_vx_normal_diff * math.sin(collision_angle)
+                    
+                    other_ball.v_x += other_ball_vx_normal_diff * math.cos(collision_angle)
+                    other_ball.v_y += other_ball_vx_normal_diff * math.sin(collision_angle)
 
             screen.blit(ball.image, ball.image.get_rect(center=(ball.x, 512-ball.y)))
 
